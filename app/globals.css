@@ -53,6 +53,43 @@ button {
   padding: 0 16px 40px;
 }
 
+/* Pita teks berjalan di paling atas: emas + hijau tua seperti situs referensi. */
+.marquee {
+  background: #d4af37;
+  color: #064e3b;
+  border-radius: 14px;
+  overflow: hidden;
+  padding: 9px 0;
+  margin-bottom: 14px;
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 55s linear infinite;
+}
+
+.marquee-half {
+  white-space: nowrap;
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
+
 .site-header {
   display: flex;
   flex-direction: column;

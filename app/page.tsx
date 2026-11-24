@@ -38,6 +38,12 @@ interface WinnersData {
 
 type Tab = "ambil" | "titip" | "cara" | "tips" | "pemenang";
 
+// Teks berjalan di bagian paling atas, meniru pita pengumuman situs referensi
+// yang ditunjuk pemilik: ajakan membaca shalawat + istighfar, diulang mulus.
+const MARQUEE_UNIT =
+  "✨ Bacalah shalawat kepada Nabi ﷺ — اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ — أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ وَأَتُوبُ إِلَيْهِ — ";
+const MARQUEE_TEXT = MARQUEE_UNIT.repeat(3);
+
 const TABS: { id: Tab; label: string }[] = [
   { id: "ambil", label: "Ambil Kunci" },
   { id: "titip", label: "Titip Kunci" },
@@ -264,6 +270,15 @@ export default function HomePage() {
 
   return (
     <div className="shell">
+      <div className="marquee" aria-label="Bacalah shalawat kepada Nabi ﷺ">
+        <div className="marquee-track">
+          <span className="marquee-half">{MARQUEE_TEXT}</span>
+          <span className="marquee-half" aria-hidden="true">
+            {MARQUEE_TEXT}
+          </span>
+        </div>
+      </div>
+
       <header className="site-header">
         {/* Logo resmi dari pemilik aplikasi. */}
         <img src="/logo.png" alt="Nuswap" />
