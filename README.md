@@ -7,7 +7,8 @@ Dibangun dengan Next.js (App Router) + PostgreSQL, mengikuti PRD Final Tukar Kun
 ## Fitur
 
 - **Ambil Kunci**: perangkat baru langsung mendapat kode starter pemilik. Setelah itu kode komunitas dirotasi adil (paling sedikit dipakai tampil lebih dulu). Tombol "Salin + Buka di Nusuk" menyalin kode dan membuka deep link Nusuk. Pengguna melaporkan Berhasil/Gagal; kode yang gagal 3 kali otomatis dipensiunkan.
-- **Grid Kunci Siap Pakai Lainnya**: kartu bernomor berisi kode antrean, masing-masing dengan Copy code dan tombol Buka di Nusuk. Kode yang sudah diambil perangkat ini tampil "Sudah dipakai" dan nonaktif, karena satu kode hanya berlaku sekali per pasangan pengguna.
+- **Grid Kunci Siap Pakai Lainnya**: 10 kartu bernomor berisi kode antrean, masing-masing dengan Copy code dan tombol Buka di Nusuk. Kode yang sudah diambil perangkat ini tampil "Sudah dipakai" dan nonaktif, karena satu kode hanya berlaku sekali per pasangan pengguna.
+- **Riwayat Kunci Saya**: semua kunci yang pernah diambil perangkat ini tercatat dengan waktu pengambilan dan status Berhasil/Gagal/Sudah dipakai. Server menolak pengambilan ulang kunci yang sama (HTTP 409).
 - **Titip Kunci**: tempel kode `NG-xxxxxxxx` atau tautan Nusuk utuh, sistem mengekstrak kodenya, menjaga huruf besar/kecil, menolak duplikat, dan menampilkan posisi antrean.
 - **Cara Pakai**: 3 langkah memakai kode di aplikasi Nusuk plus catatan keamanan.
 - **Tips dari Pemenang**: jawab 20 sampai 30 pertanyaan per pintu sampai tuntas, kerjakan menjelang atau sesudah sholat. Tips pengalaman, bukan jaminan menang.
