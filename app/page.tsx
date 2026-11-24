@@ -392,8 +392,9 @@ export default function HomePage() {
                 </button>
               </div>
               <p className="section-sub">
-                Ambil beberapa kunci sekaligus dalam satu kunjungan. Urutan kartu mengikuti
-                antrean: kode yang paling sedikit dipakai tampil lebih dulu.
+                Ambil beberapa kunci sekaligus dalam satu kunjungan. Kunci titipan peserta
+                tampil lebih dulu; di tiap kelompok, kode yang paling sedikit dipakai
+                tampil lebih dulu.
               </p>
               <div className="grid">
                 {keys.grid.map((item, i) => (

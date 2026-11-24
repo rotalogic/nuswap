@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
   // benar-benar kode lain dari database.
   let rows = await query<CodeRow>(
     `${ELIGIBLE} AND NOT (c.code = ANY($2::text[]))
-     ORDER BY c.use_count ASC, c.created_at ASC
+     ORDER BY (c.owner_device_id IS NULL) ASC, c.use_count ASC, c.created_at ASC
      LIMIT ${LIMIT}`,
     [device.id, exclude]
   );
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     const picked = rows.map((r) => r.code);
     const fill = await query<CodeRow>(
       `${ELIGIBLE} AND NOT (c.code = ANY($2::text[]))
-       ORDER BY c.use_count ASC, c.created_at ASC
+       ORDER BY (c.owner_device_id IS NULL) ASC, c.use_count ASC, c.created_at ASC
        LIMIT ${LIMIT - rows.length}`,
       [device.id, picked]
     );

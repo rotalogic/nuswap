@@ -41,6 +41,9 @@ export async function GET(req: NextRequest) {
 
   // Kode komunitas yang layak tampil untuk perangkat ini: aktif, bukan starter,
   // belum pernah diambil perangkat ini, dan bukan titipan perangkat ini sendiri.
+  // Urutan antrean: kunci titipan peserta (owner_device_id terisi) selalu di atas
+  // kunci cadangan dari seed pemilik (owner_device_id NULL); di dalam tiap
+  // kelompok, yang paling sedikit dipakai dulu, lalu yang paling lama menunggu.
   // Diambil 11 baris: 1 untuk kartu utama (bila bukan starter) + 10 untuk grid.
   const eligible = await query<CodeRow>(
     `SELECT c.id, c.code, c.is_starter, c.use_count
@@ -52,7 +55,7 @@ export async function GET(req: NextRequest) {
         AND NOT EXISTS (
           SELECT 1 FROM code_takes t WHERE t.code_id = c.id AND t.device_id = $1
         )
-      ORDER BY c.use_count ASC, c.created_at ASC
+      ORDER BY (c.owner_device_id IS NULL) ASC, c.use_count ASC, c.created_at ASC
       LIMIT 11`,
     [device.id]
   );
