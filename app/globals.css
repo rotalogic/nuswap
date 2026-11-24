@@ -459,6 +459,62 @@ button {
   flex: 0 0 auto;
 }
 
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 14px;
+}
+
+.history-item .who {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-item .who strong {
+  display: block;
+  word-break: break-all;
+}
+
+.history-item .who span {
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.history-badge {
+  font-size: 0.7rem;
+  font-weight: 900;
+  border-radius: 999px;
+  padding: 3px 9px;
+  flex: 0 0 auto;
+}
+
+.badge-ok {
+  background: var(--green);
+  color: #fff;
+}
+
+.badge-fail {
+  background: #fff;
+  border: 2px solid var(--danger);
+  color: var(--danger);
+}
+
+.badge-used {
+  background: var(--cream-deep);
+  color: var(--ink-soft);
+}
+
 .muted {
   color: var(--ink-soft);
   font-weight: 600;

@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
 
   // Kode komunitas yang layak tampil untuk perangkat ini: aktif, bukan starter,
   // belum pernah diambil perangkat ini, dan bukan titipan perangkat ini sendiri.
+  // Diambil 11 baris: 1 untuk kartu utama (bila bukan starter) + 10 untuk grid.
   const eligible = await query<CodeRow>(
     `SELECT c.id, c.code, c.is_starter, c.use_count
        FROM invitation_codes c
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
           SELECT 1 FROM code_takes t WHERE t.code_id = c.id AND t.device_id = $1
         )
       ORDER BY c.use_count ASC, c.created_at ASC
-      LIMIT 13`,
+      LIMIT 11`,
     [device.id]
   );
 
@@ -60,8 +61,8 @@ export async function GET(req: NextRequest) {
     main = publicCode(eligible[0]);
   }
   const gridRows = main
-    ? eligible.filter((r) => r.code !== main!.code).slice(0, 12)
-    : eligible.slice(0, 12);
+    ? eligible.filter((r) => r.code !== main!.code).slice(0, 10)
+    : eligible.slice(0, 10);
 
   // Kode yang sudah diambil perangkat ini, untuk ditampilkan sebagai kartu nonaktif.
   const taken = await query<{ code: string }>(
@@ -71,6 +72,31 @@ export async function GET(req: NextRequest) {
       ORDER BY t.taken_at DESC`,
     [device.id]
   );
+
+  // Riwayat kunci perangkat ini: semua pengambilan dari code_takes, digabung
+  // laporan terakhir per kode dari code_reports. Terbaru dulu, maks 50.
+  const historyRows = await query<{
+    code: string;
+    taken_at: Date | string;
+    report: "success" | "failed" | null;
+  }>(
+    `SELECT c.code, t.taken_at,
+       (SELECT r.result FROM code_reports r
+         WHERE r.device_id = t.device_id AND r.code_id = t.code_id
+         ORDER BY r.created_at DESC
+         LIMIT 1) AS report
+       FROM code_takes t
+       JOIN invitation_codes c ON c.id = t.code_id
+      WHERE t.device_id = $1
+      ORDER BY t.taken_at DESC
+      LIMIT 50`,
+    [device.id]
+  );
+  const history = historyRows.map((h) => ({
+    code: h.code,
+    taken_at: new Date(h.taken_at).toISOString(),
+    report: h.report ?? null,
+  }));
 
   const statsRow = await queryOne<{ codes_ready: number; keys_shared: number }>(
     `SELECT
@@ -84,6 +110,7 @@ export async function GET(req: NextRequest) {
     main,
     grid: gridRows.map(publicCode),
     taken: taken.map((t) => t.code),
+    history,
     stats: {
       codes_ready: statsRow?.codes_ready ?? 0,
       keys_shared: statsRow?.keys_shared ?? 0,

@@ -8,11 +8,18 @@ interface PublicCode {
   useCount: number;
 }
 
+interface HistoryItem {
+  code: string;
+  taken_at: string;
+  report: "success" | "failed" | null;
+}
+
 interface KeysData {
   starter: PublicCode | null;
   main: PublicCode | null;
   grid: PublicCode[];
   taken: string[];
+  history: HistoryItem[];
   stats: { codes_ready: number; keys_shared: number };
 }
 
@@ -68,6 +75,25 @@ function formatDate(iso: string): string {
     "Juli", "Agustus", "September", "Oktober", "November", "Desember",
   ];
   return `${d} ${months[m - 1]} ${y}`;
+}
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  const date = new Intl.DateTimeFormat("id-ID", {
+    timeZone: "Asia/Jakarta",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(d);
+  const time = new Intl.DateTimeFormat("id-ID", {
+    timeZone: "Asia/Jakarta",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(d)
+    .replace(".", ":");
+  return `${date}, pukul ${time} WIB`;
 }
 
 export default function HomePage() {
@@ -367,6 +393,42 @@ export default function HomePage() {
                   </article>
                 ))}
               </div>
+            </>
+          )}
+
+          {keys && (
+            <>
+              <h2 className="section-title">Riwayat Kunci Saya</h2>
+              <p className="section-sub">
+                Kunci yang sudah kamu ambil tercatat di sini dan tidak bisa dipakai ulang
+                di perangkat ini.
+              </p>
+              {keys.history.length === 0 ? (
+                <section className="card empty">
+                  Belum ada kunci yang kamu ambil. Kunci yang sudah kamu ambil akan
+                  tercatat di sini dan tidak bisa dipakai ulang.
+                </section>
+              ) : (
+                <div className="history-list">
+                  {keys.history.map((h) => (
+                    <div className="history-item" key={`${h.code}-${h.taken_at}`}>
+                      <div className="who">
+                        <strong>{h.code}</strong>
+                        <span>Diambil {formatDateTime(h.taken_at)}</span>
+                      </div>
+                      {h.report === "success" && (
+                        <span className="history-badge badge-ok">Berhasil</span>
+                      )}
+                      {h.report === "failed" && (
+                        <span className="history-badge badge-fail">Gagal</span>
+                      )}
+                      {h.report === null && (
+                        <span className="history-badge badge-used">Sudah dipakai</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </main>
