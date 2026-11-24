@@ -90,10 +90,10 @@ button {
   }
 }
 
-/* Kartu bagikan kode cepat + baris shalawat statis di awal halaman,
-   meniru susunan situs referensi: formulir dulu, shalawat tepat di bawahnya. */
+/* Kartu bagikan kode cepat di bawah kunci utama, agar tombol ambil kunci tetap
+   terlihat di layar pertama. Baris shalawat tepat di bawah formulirnya. */
 .share-quick {
-  margin-bottom: 14px;
+  margin: 14px 0;
 }
 
 .shalawat-line {
@@ -583,6 +583,26 @@ button {
   padding: 10px 14px;
 }
 
+.history-item .report-actions {
+  flex: 0 0 auto;
+}
+
+.history-item .report-actions .btn {
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 480px) {
+  .history-item {
+    flex-wrap: wrap;
+  }
+
+  .history-item .report-actions {
+    flex: 1 0 100%;
+  }
+}
+
 .history-item .who {
   flex: 1;
   min-width: 0;
@@ -616,11 +636,6 @@ button {
   background: transparent;
   border: 2px solid var(--danger);
   color: #f0a293;
-}
-
-.badge-used {
-  background: var(--cream-deep);
-  color: var(--ink-soft);
 }
 
 .muted {
