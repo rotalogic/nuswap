@@ -56,8 +56,12 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 22px 0 6px;
+  padding: 26px 16px 20px;
+  margin-top: 14px;
   text-align: center;
+  background: #14532d;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(20, 83, 45, 0.25);
 }
 
 .site-header img {
@@ -66,9 +70,9 @@ button {
 }
 
 .tagline {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   font-weight: 700;
-  color: var(--ink-soft);
+  color: #f2e7cf;
   font-size: 0.98rem;
 }
 
