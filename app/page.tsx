@@ -105,6 +105,7 @@ export default function HomePage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [reciprocity, setReciprocity] = useState(false);
   const [busyCode, setBusyCode] = useState<string | null>(null);
+  const [gridBusy, setGridBusy] = useState(false);
 
   const [submitInput, setSubmitInput] = useState("");
   const [submitBusy, setSubmitBusy] = useState(false);
@@ -167,6 +168,26 @@ export default function HomePage() {
     setPendingReport(target.code);
     window.open(target.deepLink, "_blank", "noopener");
     loadKeys();
+  }
+
+  async function refreshGrid() {
+    if (!keys || gridBusy) return;
+    setGridBusy(true);
+    try {
+      const exclude = [
+        ...(keys.main ? [keys.main.code] : []),
+        ...keys.grid.map((g) => g.code),
+      ].join(",");
+      const res = await fetch(`/api/keys/more?exclude=${encodeURIComponent(exclude)}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("bad status");
+      const json = (await res.json()) as { grid: PublicCode[] };
+      setKeys((prev) => (prev ? { ...prev, grid: json.grid } : prev));
+    } catch {
+      setNotice("Kode lain belum bisa dimuat. Coba lagi ya.");
+    }
+    setGridBusy(false);
   }
 
   async function handleGridCopy(item: PublicCode) {
@@ -359,7 +380,17 @@ export default function HomePage() {
 
           {keys && (keys.grid.length > 0 || keys.taken.length > 0) && (
             <>
-              <h2 className="section-title">Kunci Siap Pakai Lainnya</h2>
+              <div className="section-head">
+                <h2 className="section-title">Kunci Siap Pakai Lainnya</h2>
+                <button
+                  className="refresh-btn"
+                  onClick={refreshGrid}
+                  disabled={gridBusy}
+                  aria-label="Muat kode lain yang belum pernah dipakai"
+                >
+                  {gridBusy ? "Memuat…" : "↻ Refresh"}
+                </button>
+              </div>
               <p className="section-sub">
                 Ambil beberapa kunci sekaligus dalam satu kunjungan. Urutan kartu mengikuti
                 antrean: kode yang paling sedikit dipakai tampil lebih dulu.
