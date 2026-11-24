@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 
 interface PublicCode {
   code: string;
@@ -40,9 +40,26 @@ type Tab = "ambil" | "titip" | "cara" | "tips" | "pemenang";
 
 // Teks berjalan di bagian paling atas, meniru pita pengumuman situs referensi
 // yang ditunjuk pemilik: ajakan membaca shalawat + istighfar, diulang mulus.
-const MARQUEE_UNIT =
-  "✨ Bacalah shalawat kepada Nabi ﷺ — اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ — أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ وَأَتُوبُ إِلَيْهِ — ";
-const MARQUEE_TEXT = MARQUEE_UNIT.repeat(3);
+const SHALAWAT = "اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ";
+const ISTIGHFAR = "أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ وَأَتُوبُ إِلَيْهِ";
+
+// Ditandai lang="ar" agar dibaca dengan pelafalan Arab oleh pembaca layar.
+function Arabic({ children }: { children: string }) {
+  return (
+    <span lang="ar" dir="rtl">
+      {children}
+    </span>
+  );
+}
+
+function MarqueeText() {
+  return [0, 1, 2].map((i) => (
+    <Fragment key={i}>
+      ✨ Bacalah shalawat kepada Nabi ﷺ — <Arabic>{SHALAWAT}</Arabic> —{" "}
+      <Arabic>{ISTIGHFAR}</Arabic> —{" "}
+    </Fragment>
+  ));
+}
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "ambil", label: "Ambil Kunci" },
@@ -52,26 +69,42 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "pemenang", label: "Pemenang" },
 ];
 
-async function copyText(text: string): Promise<boolean> {
+type TakeOutcome = "ok" | "inactive" | "error";
+
+interface Notice {
+  kind: "ok" | "err";
+  text: string;
+}
+
+function copyWithTextarea(text: string): boolean {
+  const previous = document.activeElement as HTMLElement | null;
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.readOnly = true;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  let ok = false;
   try {
-    await navigator.clipboard.writeText(text);
-    return true;
+    ok = document.execCommand("copy");
   } catch {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    let ok = false;
-    try {
-      ok = document.execCommand("copy");
-    } catch {
-      ok = false;
-    }
-    document.body.removeChild(ta);
-    return ok;
+    ok = false;
   }
+  document.body.removeChild(ta);
+  previous?.focus?.();
+  return ok;
+}
+
+// Cara sinkron didahulukan, supaya salinan selesai sebelum tab Nusuk mengambil fokus.
+function copyText(text: string): Promise<boolean> {
+  if (copyWithTextarea(text)) return Promise.resolve(true);
+  if (!navigator.clipboard) return Promise.resolve(false);
+  return navigator.clipboard.writeText(text).then(
+    () => true,
+    () => false
+  );
 }
 
 function formatDate(iso: string): string {
@@ -107,8 +140,9 @@ export default function HomePage() {
   const [keys, setKeys] = useState<KeysData | null>(null);
   const [keysError, setKeysError] = useState<string | null>(null);
   const [winners, setWinners] = useState<WinnersData | null>(null);
-  const [pendingReport, setPendingReport] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [winnersError, setWinnersError] = useState(false);
+  const [reportBusy, setReportBusy] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [reciprocity, setReciprocity] = useState(false);
   const [busyCode, setBusyCode] = useState<string | null>(null);
   const [gridBusy, setGridBusy] = useState(false);
@@ -135,8 +169,9 @@ export default function HomePage() {
       const res = await fetch("/api/winners", { cache: "no-store" });
       if (!res.ok) throw new Error("bad status");
       setWinners((await res.json()) as WinnersData);
+      setWinnersError(false);
     } catch {
-      setWinners(null);
+      setWinnersError(true);
     }
   }, []);
 
@@ -145,34 +180,49 @@ export default function HomePage() {
     loadWinners();
   }, [loadKeys, loadWinners]);
 
-  async function take(code: string): Promise<boolean> {
-    const res = await fetch("/api/keys/take", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    });
-    if (res.status === 409) return true; // sudah tercatat diambil perangkat ini
-    return res.ok;
+  async function take(code: string): Promise<TakeOutcome> {
+    try {
+      const res = await fetch("/api/keys/take", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+        // Tetap terkirim walau halaman ini ditinggal ke aplikasi Nusuk.
+        keepalive: true,
+      });
+      // 409: sudah tercatat diambil perangkat ini.
+      if (res.ok || res.status === 409) return "ok";
+      return res.status === 410 || res.status === 404 ? "inactive" : "error";
+    } catch {
+      return "error";
+    }
   }
 
-  async function handleMainTake() {
-    if (!keys?.main || busyCode) return;
-    const target = keys.main;
-    setBusyCode(target.code);
-    const copied = await copyText(target.code);
-    const took = await take(target.code);
+  async function takeCode(item: PublicCode, openNusuk: boolean) {
+    if (busyCode) return;
+    setBusyCode(item.code);
+    // Salin, catat, lalu buka tab, semuanya dimulai langsung dari ketukan. Bila
+    // window.open menunggu jaringan dulu, Safari memblokirnya sebagai popup.
+    const copying = copyText(item.code);
+    const taking = take(item.code);
+    if (openNusuk) window.open(item.deepLink, "_blank", "noopener");
+    const copied = await copying;
+    const outcome = await taking;
     setBusyCode(null);
-    if (!took) {
-      setNotice("Pengambilan belum tercatat. Coba lagi ya.");
-      return;
+
+    if (outcome === "inactive") {
+      setNotice({ kind: "err", text: `Kode ${item.code} sudah tidak aktif. Pakai kode lain ya.` });
+    } else if (outcome === "error") {
+      setNotice({ kind: "err", text: "Pengambilan belum tercatat. Periksa koneksimu lalu coba lagi ya." });
+    } else if (!copied) {
+      setNotice({ kind: "ok", text: `Salin manual kodenya: ${item.code}` });
+    } else if (openNusuk) {
+      setNotice({
+        kind: "ok",
+        text: `Kode ${item.code} tersalin. Aplikasi Nusuk dibuka di tab baru, tempel kodenya di sana.`,
+      });
+    } else {
+      setNotice({ kind: "ok", text: `Kode ${item.code} tersalin. Tempel di aplikasi Nusuk, menu Keys.` });
     }
-    setNotice(
-      copied
-        ? `Kode ${target.code} tersalin. Aplikasi Nusuk dibuka di tab baru, tempel kodenya di sana.`
-        : `Aplikasi Nusuk dibuka di tab baru. Salin manual kodenya: ${target.code}`
-    );
-    setPendingReport(target.code);
-    window.open(target.deepLink, "_blank", "noopener");
     loadKeys();
   }
 
@@ -191,53 +241,49 @@ export default function HomePage() {
       const json = (await res.json()) as { grid: PublicCode[] };
       setKeys((prev) => (prev ? { ...prev, grid: json.grid } : prev));
     } catch {
-      setNotice("Kode lain belum bisa dimuat. Coba lagi ya.");
+      setNotice({ kind: "err", text: "Kode lain belum bisa dimuat. Coba lagi ya." });
     }
     setGridBusy(false);
   }
 
-  async function handleGridCopy(item: PublicCode) {
-    if (busyCode) return;
-    setBusyCode(item.code);
-    const copied = await copyText(item.code);
-    await take(item.code);
-    setBusyCode(null);
-    setNotice(
-      copied
-        ? `Kode ${item.code} tersalin. Tempel di aplikasi Nusuk, menu Keys.`
-        : `Salin manual kodenya: ${item.code}`
-    );
-    loadKeys();
-  }
-
-  async function handleGridOpen(item: PublicCode) {
-    if (busyCode) return;
-    setBusyCode(item.code);
-    await copyText(item.code);
-    await take(item.code);
-    setBusyCode(null);
-    window.open(item.deepLink, "_blank", "noopener");
-    loadKeys();
-  }
-
-  async function handleReport(result: "success" | "failed") {
-    if (!pendingReport) return;
-    const code = pendingReport;
-    const res = await fetch("/api/keys/report", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, result }),
-    });
-    setPendingReport(null);
-    if (res.ok && result === "success") {
+  async function handleReport(code: string, result: "success" | "failed") {
+    if (reportBusy) return;
+    setReportBusy(code);
+    let sent = false;
+    try {
+      const res = await fetch("/api/keys/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, result }),
+      });
+      sent = res.ok;
+    } catch {
+      sent = false;
+    }
+    setReportBusy(null);
+    if (!sent) {
+      setNotice({ kind: "err", text: "Laporan belum terkirim. Coba lagi nanti ya." });
+      return;
+    }
+    if (result === "success") {
       setReciprocity(true);
-      setNotice("Terima kasih, laporanmu tercatat. Kunci ekstra sudah masuk ke akun Nusukmu.");
-    } else if (res.ok) {
-      setNotice("Laporan tercatat. Kode yang gagal 3 kali akan dipensiunkan dari antrean.");
+      setNotice({
+        kind: "ok",
+        text: "Terima kasih, laporanmu tercatat. Kunci ekstra sudah masuk ke akun Nusukmu.",
+      });
     } else {
-      setNotice("Laporan belum terkirim. Coba lagi nanti ya.");
+      setNotice({
+        kind: "ok",
+        text: "Laporan tercatat. Kode yang lebih sering gagal akan dipensiunkan dari antrean.",
+      });
     }
     loadKeys();
+  }
+
+  // Hasil titip hanya berlaku di tab tempat formulirnya dikirim.
+  function openTab(next: Tab) {
+    setTab(next);
+    setSubmitResult(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -268,13 +314,42 @@ export default function HomePage() {
   const latestWinner = winners?.winners[0] ?? null;
   const stripWinner = todayWinner ?? latestWinner;
 
+  // Diambil dari riwayat server, jadi tidak hilang saat halaman dimuat ulang.
+  const lastTake = keys?.history[0];
+  const pendingReport = lastTake && lastTake.report === null ? lastTake.code : null;
+
+  function reportButtons(code: string) {
+    return (
+      <div className="report-actions">
+        <button
+          className="btn btn-success"
+          onClick={() => handleReport(code, "success")}
+          disabled={reportBusy === code}
+          aria-label={`Laporkan kode ${code} berhasil`}
+        >
+          Berhasil
+        </button>
+        <button
+          className="btn btn-fail"
+          onClick={() => handleReport(code, "failed")}
+          disabled={reportBusy === code}
+          aria-label={`Laporkan kode ${code} gagal`}
+        >
+          Gagal
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="shell">
       <div className="marquee" aria-label="Bacalah shalawat kepada Nabi ﷺ">
         <div className="marquee-track">
-          <span className="marquee-half">{MARQUEE_TEXT}</span>
+          <span className="marquee-half">
+            <MarqueeText />
+          </span>
           <span className="marquee-half" aria-hidden="true">
-            {MARQUEE_TEXT}
+            <MarqueeText />
           </span>
         </div>
       </div>
@@ -285,40 +360,6 @@ export default function HomePage() {
         <p className="tagline">Tukar Kunci Nusuk untuk Sesama</p>
       </header>
 
-      <section className="card share-quick">
-        <h2 className="section-title" style={{ marginTop: 0 }}>Bagikan Kodemu</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label htmlFor="quick-submit-input">Kode atau tautan Nusuk</label>
-            <input
-              id="quick-submit-input"
-              type="text"
-              placeholder="Tempel kunci atau tautan Nusuk"
-              value={submitInput}
-              onChange={(e) => setSubmitInput(e.target.value)}
-              autoComplete="off"
-              required
-            />
-          </div>
-          <button className="btn btn-primary" type="submit" disabled={submitBusy} style={{ marginTop: 14 }}>
-            {submitBusy ? "Menyimpan..." : "Kirim Kode"}
-          </button>
-        </form>
-        {submitResult?.ok && (
-          <div className="notice notice-ok" role="status">
-            Kunci {submitResult.code} tersimpan. Posisi antreanmu sekarang nomor{" "}
-            {submitResult.position}. Kunci titipan peserta tampil lebih dulu di antrean.
-          </div>
-        )}
-        {submitResult && !submitResult.ok && (
-          <div className="notice notice-err" role="alert">{submitResult.message}</div>
-        )}
-      </section>
-
-      <p className="shalawat-line">
-        Bacalah shalawat: اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ
-      </p>
-
       <nav className="tabs" role="tablist" aria-label="Menu Nuswap">
         {TABS.map((t) => (
           <button
@@ -326,7 +367,7 @@ export default function HomePage() {
             role="tab"
             aria-selected={tab === t.id}
             className="tab"
-            onClick={() => setTab(t.id)}
+            onClick={() => openTab(t.id)}
           >
             {t.label}
           </button>
@@ -347,7 +388,7 @@ export default function HomePage() {
           </div>
 
           {stripWinner && (
-            <button className="winner-strip" onClick={() => setTab("pemenang")}>
+            <button className="winner-strip" onClick={() => openTab("pemenang")}>
               <small>{todayWinner ? "Pemenang Hari Ini" : "Pemenang Terbaru"}</small>
               <strong>
                 No. {stripWinner.draw_no}: {stripWinner.name} ({stripWinner.country})
@@ -355,7 +396,14 @@ export default function HomePage() {
             </button>
           )}
 
-          {notice && <div className="notice notice-ok" role="status">{notice}</div>}
+          {notice && (
+            <div
+              className={`notice ${notice.kind === "ok" ? "notice-ok" : "notice-err"}`}
+              role={notice.kind === "ok" ? "status" : "alert"}
+            >
+              {notice.text}
+            </div>
+          )}
 
           {keysError && <div className="notice notice-err" role="alert">{keysError}</div>}
 
@@ -371,41 +419,19 @@ export default function HomePage() {
               <div className="key-code">{keys.main.code}</div>
               <button
                 className="btn btn-primary"
-                onClick={handleMainTake}
+                onClick={() => keys.main && takeCode(keys.main, true)}
                 disabled={busyCode === keys.main.code}
               >
                 Salin + Buka di Nusuk
               </button>
 
-              {pendingReport === keys.main.code ? (
+              {pendingReport && (
                 <div className="report-row">
-                  <p>Bagaimana hasil pemakaian kode tadi di Nusuk?</p>
-                  <div className="report-actions">
-                    <button className="btn btn-success" onClick={() => handleReport("success")}>
-                      Berhasil
-                    </button>
-                    <button className="btn btn-fail" onClick={() => handleReport("failed")}>
-                      Gagal
-                    </button>
-                  </div>
+                  <p>
+                    Kamu baru mengambil kode {pendingReport}. Bagaimana hasilnya di Nusuk?
+                  </p>
+                  {reportButtons(pendingReport)}
                 </div>
-              ) : (
-                pendingReport && (
-                  <div className="report-row">
-                    <p>
-                      Kamu baru mengambil kode {pendingReport}. Laporkan hasilnya supaya
-                      antrean tetap sehat.
-                    </p>
-                    <div className="report-actions">
-                      <button className="btn btn-success" onClick={() => handleReport("success")}>
-                        Berhasil
-                      </button>
-                      <button className="btn btn-fail" onClick={() => handleReport("failed")}>
-                        Gagal
-                      </button>
-                    </div>
-                  </div>
-                )
               )}
             </section>
           )}
@@ -417,11 +443,45 @@ export default function HomePage() {
             </section>
           )}
 
+          <section className="card share-quick">
+            <h2 className="section-title" style={{ marginTop: 0 }}>Bagikan Kodemu</h2>
+            <form onSubmit={handleSubmit}>
+              <div className="field">
+                <label htmlFor="quick-submit-input">Kode atau tautan Nusuk</label>
+                <input
+                  id="quick-submit-input"
+                  type="text"
+                  placeholder="Tempel kunci atau tautan Nusuk"
+                  value={submitInput}
+                  onChange={(e) => setSubmitInput(e.target.value)}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={submitBusy} style={{ marginTop: 14 }}>
+                {submitBusy ? "Menyimpan..." : "Kirim Kode"}
+              </button>
+            </form>
+            {submitResult?.ok && (
+              <div className="notice notice-ok" role="status">
+                Kunci {submitResult.code} tersimpan. Posisi antreanmu sekarang nomor{" "}
+                {submitResult.position}. Kunci titipan peserta tampil lebih dulu di antrean.
+              </div>
+            )}
+            {submitResult && !submitResult.ok && (
+              <div className="notice notice-err" role="alert">{submitResult.message}</div>
+            )}
+          </section>
+
+          <p className="shalawat-line">
+            Bacalah shalawat: <Arabic>{SHALAWAT}</Arabic>
+          </p>
+
           {reciprocity && (
             <div className="notice notice-ok">
               Giliranmu membantu peserta lain. Titip kuncimu, pemilik kode dan pemakai
               sama-sama dapat kunci ekstra.{" "}
-              <button className="copy-link" onClick={() => setTab("titip")} style={{ background: "none", border: 0, fontWeight: 900, color: "var(--green-dark)", textDecoration: "underline" }}>
+              <button className="copy-link" onClick={() => openTab("titip")} style={{ background: "none", border: 0, fontWeight: 900, color: "var(--green-dark)", textDecoration: "underline" }}>
                 Titip Kunci sekarang
               </button>
             </div>
@@ -452,14 +512,14 @@ export default function HomePage() {
                     <div className="code">{item.code}</div>
                     <button
                       className="copy-link"
-                      onClick={() => handleGridCopy(item)}
+                      onClick={() => takeCode(item, false)}
                       disabled={busyCode === item.code}
                     >
                       Nusuk Challenge Key <span>Copy code</span>
                     </button>
                     <button
                       className="open-btn"
-                      onClick={() => handleGridOpen(item)}
+                      onClick={() => takeCode(item, true)}
                       disabled={busyCode === item.code}
                     >
                       Buka di Nusuk
@@ -482,7 +542,7 @@ export default function HomePage() {
               <h2 className="section-title">Riwayat Kunci Saya</h2>
               <p className="section-sub">
                 Kunci yang sudah kamu ambil tercatat di sini dan tidak bisa dipakai ulang
-                di perangkat ini.
+                di perangkat ini. Laporkan hasilnya supaya antrean tetap sehat.
               </p>
               {keys.history.length === 0 ? (
                 <section className="card empty">
@@ -503,9 +563,7 @@ export default function HomePage() {
                       {h.report === "failed" && (
                         <span className="history-badge badge-fail">Gagal</span>
                       )}
-                      {h.report === null && (
-                        <span className="history-badge badge-used">Sudah dipakai</span>
-                      )}
+                      {h.report === null && reportButtons(h.code)}
                     </div>
                   ))}
                 </div>
@@ -624,12 +682,21 @@ export default function HomePage() {
               </div>
               <p className="muted" style={{ margin: "4px 0 0" }}>
                 {todayWinner.country}
-                {todayWinner.is_indonesia ? " (Indonesia)" : ""}
               </p>
             </section>
           )}
           <h2 className="section-title" style={{ marginTop: 0 }}>Daftar Pemenang Terverifikasi</h2>
-          {!winners && <div className="card empty">Memuat daftar pemenang...</div>}
+          {!winners && !winnersError && (
+            <div className="card empty">Memuat daftar pemenang...</div>
+          )}
+          {!winners && winnersError && (
+            <div className="notice notice-err" role="alert">
+              <p style={{ margin: "0 0 10px" }}>Daftar pemenang belum bisa dimuat.</p>
+              <button className="btn btn-ghost btn-small" onClick={loadWinners}>
+                Coba lagi
+              </button>
+            </div>
+          )}
           {winners && winners.winners.length === 0 && (
             <div className="card empty">Belum ada data pemenang.</div>
           )}

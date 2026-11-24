@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPool, queryOne } from "@/lib/db";
-import { ensureDevice, copyDeviceCookie } from "@/lib/device";
+import { queryOne } from "@/lib/db";
+import { ensureDevice, withDeviceCookie } from "@/lib/device";
 import { CODE_REGEX } from "@/lib/codes";
 import { rateLimited } from "@/lib/ratelimit";
+import { ipHash } from "@/lib/request";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  if (rateLimited(req)) {
+  if (await rateLimited(`take:${ipHash(req)}`, 60, 60)) {
     return NextResponse.json({ error: "Terlalu banyak permintaan. Coba lagi sebentar." }, { status: 429 });
   }
-  const res = NextResponse.json({ ok: true });
-  const device = await ensureDevice(req, res);
 
   let body: { code?: unknown };
   try {
@@ -19,7 +18,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Format permintaan tidak valid." }, { status: 400 });
   }
-  const code = typeof body.code === "string" ? body.code : "";
+  const code = typeof body?.code === "string" ? body.code : "";
   if (!CODE_REGEX.test(code)) {
     return NextResponse.json({ error: "Format kode tidak valid." }, { status: 400 });
   }
@@ -35,26 +34,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Kode ini sudah tidak aktif." }, { status: 410 });
   }
 
-  try {
-    await getPool().query(
-      "INSERT INTO code_takes (device_id, code_id) VALUES ($1, $2)",
-      [device.id, row.id]
-    );
-  } catch (err) {
-    if ((err as { code?: string }).code === "23505") {
-      return NextResponse.json(
+  const device = await ensureDevice(req);
+  // Satu pernyataan, supaya use_count tidak pernah beda dari jumlah pengambilan.
+  const taken = await queryOne<{ id: number }>(
+    `WITH new_take AS (
+       INSERT INTO code_takes (device_id, code_id) VALUES ($1, $2)
+       ON CONFLICT (device_id, code_id) DO NOTHING
+       RETURNING code_id
+     )
+     UPDATE invitation_codes SET use_count = use_count + 1
+      WHERE id IN (SELECT code_id FROM new_take)
+     RETURNING id`,
+    [device.id, row.id]
+  );
+
+  const out = taken
+    ? NextResponse.json({ ok: true, code })
+    : NextResponse.json(
         { error: "Kode ini sudah pernah kamu ambil di perangkat ini." },
         { status: 409 }
       );
-    }
-    throw err;
-  }
-  await getPool().query(
-    "UPDATE invitation_codes SET use_count = use_count + 1 WHERE id = $1",
-    [row.id]
-  );
-
-  const out = NextResponse.json({ ok: true, code });
-  copyDeviceCookie(res, out);
-  return out;
+  return withDeviceCookie<NextResponse>(req, out, device);
 }

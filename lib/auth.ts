@@ -4,11 +4,16 @@ import type { NextRequest } from "next/server";
 export const ADMIN_COOKIE = "nuswap_admin";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-function sessionSecret(): string {
-  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
-  // Cadangan: turunan dari konfigurasi yang memang wajib ada. Untuk produksi
-  // sebaiknya isi SESSION_SECRET sendiri di .env.
-  return `nuswap::${process.env.DATABASE_URL ?? ""}::${process.env.ADMIN_USERNAME ?? ""}`;
+const MIN_SECRET_LENGTH = 32;
+
+// Tanpa rahasia sendiri, sesi admin bisa dipalsukan, jadi tidak ada nilai cadangan.
+function sessionSecret(): string | null {
+  const secret = process.env.SESSION_SECRET ?? "";
+  return secret.length >= MIN_SECRET_LENGTH ? secret : null;
+}
+
+export function adminConfigured(): boolean {
+  return sessionSecret() !== null;
 }
 
 export function hashPassword(password: string): string {
@@ -27,7 +32,9 @@ export function verifyPassword(password: string, stored: string): boolean {
 }
 
 function sign(payload: string): string {
-  return createHmac("sha256", sessionSecret()).update(payload).digest("base64url");
+  const secret = sessionSecret();
+  if (!secret) throw new Error("SESSION_SECRET belum diisi (minimal 32 karakter).");
+  return createHmac("sha256", secret).update(payload).digest("base64url");
 }
 
 export function createSessionToken(username: string): string {
@@ -38,6 +45,7 @@ export function createSessionToken(username: string): string {
 }
 
 export function readSession(req: NextRequest): string | null {
+  if (!adminConfigured()) return null;
   const token = req.cookies.get(ADMIN_COOKIE)?.value;
   if (!token) return null;
   const [payload, signature] = token.split(".");

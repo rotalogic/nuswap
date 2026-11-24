@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import type { NextRequest } from "next/server";
-import type { NextResponse } from "next/server";
+import type { NextRequest, NextResponse } from "next/server";
 import { queryOne } from "./db";
+import { isHttps } from "./request";
 
 export const DEVICE_COOKIE = "nuswap_device";
 
@@ -10,45 +10,41 @@ export interface DeviceRow {
   device_key: string;
 }
 
+/** Perangkat dari cookie httpOnly, atau null bila belum dikenal. Tidak menulis ke database. */
+export async function findDevice(req: NextRequest): Promise<DeviceRow | null> {
+  const key = req.cookies.get(DEVICE_COOKIE)?.value;
+  if (!key) return null;
+  return queryOne<DeviceRow>("SELECT id, device_key FROM devices WHERE device_key = $1", [key]);
+}
+
 /**
- * Mengembalikan perangkat dari cookie httpOnly. Bila belum ada, perangkat baru
- * dibuat dan cookie-nya dipasang pada respons yang diberikan.
+ * Seperti findDevice, tetapi membuat perangkat baru bila belum ada. Dipanggil
+ * hanya saat pengunjung benar-benar mengambil atau menitip kunci, supaya bot
+ * yang sekadar membuka halaman tidak menambah baris.
  */
-export async function ensureDevice(
-  req: NextRequest,
-  res: NextResponse
-): Promise<DeviceRow> {
-  const existing = req.cookies.get(DEVICE_COOKIE)?.value;
-  if (existing) {
-    const row = await queryOne<DeviceRow>(
-      "SELECT id, device_key FROM devices WHERE device_key = $1",
-      [existing]
-    );
-    if (row) return row;
-  }
-  const key = randomUUID();
+export async function ensureDevice(req: NextRequest): Promise<DeviceRow> {
+  const existing = await findDevice(req);
+  if (existing) return existing;
   const row = await queryOne<DeviceRow>(
-    "INSERT INTO devices (device_key) VALUES ($1) ON CONFLICT (device_key) DO UPDATE SET device_key = EXCLUDED.device_key RETURNING id, device_key",
-    [key]
+    "INSERT INTO devices (device_key) VALUES ($1) RETURNING id, device_key",
+    [randomUUID()]
   );
-  res.cookies.set(DEVICE_COOKIE, key, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
   return row!;
 }
 
-/** Menyalin cookie perangkat (bila baru dibuat) dari respons draf ke respons akhir. */
-export function copyDeviceCookie(from: NextResponse, to: NextResponse): void {
-  const c = from.cookies.get(DEVICE_COOKIE);
-  if (c) {
-    to.cookies.set(DEVICE_COOKIE, c.value, {
+export function withDeviceCookie<T extends NextResponse>(
+  req: NextRequest,
+  res: T,
+  device: DeviceRow
+): T {
+  if (req.cookies.get(DEVICE_COOKIE)?.value !== device.device_key) {
+    res.cookies.set(DEVICE_COOKIE, device.device_key, {
       httpOnly: true,
       sameSite: "lax",
+      secure: isHttps(req),
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
     });
   }
+  return res;
 }

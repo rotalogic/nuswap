@@ -18,7 +18,13 @@ export async function POST(req: NextRequest) {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const country = typeof body.country === "string" ? body.country.trim() : "";
   const drawDate = typeof body.draw_date === "string" ? body.draw_date : "";
-  if (!Number.isInteger(drawNo) || drawNo <= 0 || !name || !country || !/^\d{4}-\d{2}-\d{2}$/.test(drawDate)) {
+  // Tanggal seperti 2026-02-31 lolos pola angka tetapi ditolak database.
+  const parsedDate = new Date(`${drawDate}T00:00:00Z`);
+  const validDate =
+    /^\d{4}-\d{2}-\d{2}$/.test(drawDate) &&
+    !Number.isNaN(parsedDate.getTime()) &&
+    parsedDate.toISOString().slice(0, 10) === drawDate;
+  if (!Number.isInteger(drawNo) || drawNo <= 0 || !name || !country || !validDate) {
     return NextResponse.json(
       { error: "Isi nomor undian, nama, negara, dan tanggal (YYYY-MM-DD) dengan benar." },
       { status: 400 }
