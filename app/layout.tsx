@@ -2,10 +2,15 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 
+// Domain produksi resmi Nuswap. Dipakai sebagai nilai bawaan metadataBase
+// (og:image, canonical) supaya thumbnail berbagi tetap benar walau
+// NEXT_PUBLIC_SITE_URL lupa diisi di env hosting. Env tetap menang bila diisi
+// (untuk lokal/staging), dan host Vercel menang atas bawaan ini.
+const PRODUCTION_URL = "https://nuswap.rotalogic.id";
 const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
-  (vercelHost ? `https://${vercelHost}` : "http://localhost:3000");
+  (vercelHost ? `https://${vercelHost}` : PRODUCTION_URL);
 const title = "Nuswap: Tukar Kunci Nusuk untuk Sesama";
 const description =
   "Tukar kode undangan Challenge Umrah Nusuk dengan peserta lain. Ambil kunci, titip kuncimu, sama-sama dapat kunci ekstra. Tanpa daftar, tanpa login.";
