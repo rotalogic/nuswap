@@ -285,6 +285,40 @@ export default function HomePage() {
         <p className="tagline">Tukar Kunci Nusuk untuk Sesama</p>
       </header>
 
+      <section className="card share-quick">
+        <h2 className="section-title" style={{ marginTop: 0 }}>Bagikan Kodemu</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="quick-submit-input">Kode atau tautan Nusuk</label>
+            <input
+              id="quick-submit-input"
+              type="text"
+              placeholder="Tempel kunci atau tautan Nusuk"
+              value={submitInput}
+              onChange={(e) => setSubmitInput(e.target.value)}
+              autoComplete="off"
+              required
+            />
+          </div>
+          <button className="btn btn-primary" type="submit" disabled={submitBusy} style={{ marginTop: 14 }}>
+            {submitBusy ? "Menyimpan..." : "Kirim Kode"}
+          </button>
+        </form>
+        {submitResult?.ok && (
+          <div className="notice notice-ok" role="status">
+            Kunci {submitResult.code} tersimpan. Posisi antreanmu sekarang nomor{" "}
+            {submitResult.position}. Kunci titipan peserta tampil lebih dulu di antrean.
+          </div>
+        )}
+        {submitResult && !submitResult.ok && (
+          <div className="notice notice-err" role="alert">{submitResult.message}</div>
+        )}
+      </section>
+
+      <p className="shalawat-line">
+        Bacalah shalawat: اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ
+      </p>
+
       <nav className="tabs" role="tablist" aria-label="Menu Nuswap">
         {TABS.map((t) => (
           <button

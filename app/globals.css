@@ -90,6 +90,19 @@ button {
   }
 }
 
+/* Kartu bagikan kode cepat + baris shalawat statis di awal halaman,
+   meniru susunan situs referensi: formulir dulu, shalawat tepat di bawahnya. */
+.share-quick {
+  margin-bottom: 14px;
+}
+
+.shalawat-line {
+  text-align: center;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 2px 0 4px;
+}
+
 .site-header {
   display: flex;
   flex-direction: column;
