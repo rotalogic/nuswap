@@ -26,9 +26,15 @@ export const metadata: Metadata = {
     title,
     description,
     url: "/",
+    // Nama berkas berversi (v2): alamat gambar yang belum pernah dilihat
+    // crawler Meta/LinkedIn, supaya pratinjau tidak memakai cache lama dari
+    // masa og:image masih menunjuk localhost. Naikkan nomor versi bila
+    // gambar diganti dan pratinjau platform lagi-lagi basi.
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image-v2.jpg",
+        secureUrl: `${siteUrl}/og-image-v2.jpg`,
+        type: "image/jpeg",
         width: 1200,
         height: 630,
         alt: "Nuswap: Tukar Kunci Nusuk untuk Sesama",
@@ -39,7 +45,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: ["/og-image.png"],
+    images: ["/og-image-v2.jpg"],
   },
 };
 
