@@ -1,18 +1,25 @@
-import type { NextRequest } from "next/server";
+import { query, queryOne } from "./db";
 
-// Rate limit sederhana di memori proses: maks 30 POST publik per menit per IP.
-const WINDOW_MS = 60_000;
-const MAX_REQUESTS = 30;
-const hits = new Map<string, number[]>();
-
-export function rateLimited(req: NextRequest): boolean {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "local";
-  const now = Date.now();
-  const list = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
-  list.push(now);
-  hits.set(ip, list);
-  return list.length > MAX_REQUESTS;
+/**
+ * Menambah hitungan bucket di database dan mengembalikan true bila melewati
+ * batas. Disimpan di Postgres agar berlaku lintas instance (mis. Vercel).
+ */
+export async function rateLimited(
+  bucket: string,
+  max: number,
+  windowSeconds: number
+): Promise<boolean> {
+  const row = await queryOne<{ count: number }>(
+    `INSERT INTO rate_limits AS r (bucket, count, reset_at)
+     VALUES ($1, 1, now() + make_interval(secs => $2))
+     ON CONFLICT (bucket) DO UPDATE SET
+       count = CASE WHEN r.reset_at <= now() THEN 1 ELSE r.count + 1 END,
+       reset_at = CASE WHEN r.reset_at <= now() THEN EXCLUDED.reset_at ELSE r.reset_at END
+     RETURNING count`,
+    [bucket, windowSeconds]
+  );
+  if (Math.random() < 0.01) {
+    await query("DELETE FROM rate_limits WHERE reset_at < now()");
+  }
+  return (row?.count ?? 0) > max;
 }

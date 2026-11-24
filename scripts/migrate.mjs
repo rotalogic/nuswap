@@ -1,15 +1,32 @@
 // Menjalankan db/schema.sql lalu membuat akun admin dari env.
 // Pakai: DATABASE_URL=... ADMIN_USERNAME=... ADMIN_PASSWORD=... npm run db:migrate
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, scryptSync } from "crypto";
 import pg from "pg";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+// File env hanya dibaca bila DATABASE_URL tidak diberikan langsung, supaya
+// migrasi ke produksi tidak ikut memakai password admin lokal.
+if (!process.env.DATABASE_URL) {
+  for (const name of [".env.local", ".env"]) {
+    const file = join(root, name);
+    if (existsSync(file)) process.loadEnvFile(file);
+  }
+}
+
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
-  console.error("DATABASE_URL belum diisi.");
+  console.error("DATABASE_URL belum diisi. Salin .env.example menjadi .env lalu isi nilainya.");
+  process.exit(1);
+}
+
+// Nilai contoh dari versi lama repo ini, jadi diketahui umum.
+const PUBLIC_PASSWORDS = ["ganti-password-admin", "ganti-dengan-password-kuat"];
+if (PUBLIC_PASSWORDS.includes(process.env.ADMIN_PASSWORD ?? "")) {
+  console.error("ADMIN_PASSWORD masih nilai contoh. Ganti dulu dengan password sendiri.");
   process.exit(1);
 }
 

@@ -2,7 +2,10 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3100";
+const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (vercelHost ? `https://${vercelHost}` : "http://localhost:3000");
 const title = "Nuswap: Tukar Kunci Nusuk untuk Sesama";
 const description =
   "Tukar kode undangan Challenge Umrah Nusuk dengan peserta lain. Ambil kunci, titip kuncimu, sama-sama dapat kunci ekstra. Tanpa daftar, tanpa login.";

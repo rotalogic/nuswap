@@ -57,6 +57,19 @@ CREATE INDEX IF NOT EXISTS idx_codes_active_queue
 CREATE INDEX IF NOT EXISTS idx_takes_device ON code_takes (device_id);
 CREATE INDEX IF NOT EXISTS idx_winners_draw_no ON winners (draw_no DESC);
 
+-- Pembaruan skema untuk database yang sudah ada.
+-- ip_hash: sidik IP pelapor (bukan IP mentah), agar satu IP dihitung satu suara.
+ALTER TABLE code_reports ADD COLUMN IF NOT EXISTS ip_hash TEXT;
+-- reports_since: laporan sebelum waktu ini diabaikan (diisi saat kode diaktifkan ulang).
+ALTER TABLE invitation_codes ADD COLUMN IF NOT EXISTS reports_since TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_reports_code ON code_reports (code_id, device_id);
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+  bucket TEXT PRIMARY KEY,
+  count INTEGER NOT NULL,
+  reset_at TIMESTAMPTZ NOT NULL
+);
+
 -- Kode starter pemilik (kunci pertama untuk perangkat baru).
 INSERT INTO invitation_codes (code, is_starter)
 VALUES ('NG-E4uHwcFo', true)

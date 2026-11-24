@@ -80,13 +80,15 @@ export default function AdminPage() {
     setCodes([]);
   }
 
-  async function handleRetire(id: number, code: string) {
-    const res = await fetch(`/api/admin/codes/${id}/retire`, { method: "POST" });
-    if (res.ok) {
-      setMessage(`Kode ${code} dipensiunkan.`);
+  async function handleCodeAction(id: number, code: string, action: "retire" | "reactivate") {
+    const verb = action === "retire" ? "dipensiunkan" : "diaktifkan lagi";
+    try {
+      const res = await fetch(`/api/admin/codes/${id}/${action}`, { method: "POST" });
+      if (!res.ok) throw new Error("bad status");
+      setMessage(`Kode ${code} ${verb}.`);
       loadAll();
-    } else {
-      setMessage("Gagal mempensiunkan kode.");
+    } catch {
+      setMessage(`Kode ${code} gagal ${verb}.`);
     }
   }
 
@@ -236,8 +238,13 @@ export default function AdminPage() {
                     <td>{c.created_at}</td>
                     <td>
                       {c.status === "active" && !c.deleted && (
-                        <button className="btn btn-fail btn-small" onClick={() => handleRetire(c.id, c.code)}>
+                        <button className="btn btn-fail btn-small" onClick={() => handleCodeAction(c.id, c.code, "retire")}>
                           Retire
+                        </button>
+                      )}
+                      {c.status === "retired" && !c.deleted && (
+                        <button className="btn btn-ghost btn-small" onClick={() => handleCodeAction(c.id, c.code, "reactivate")}>
+                          Aktifkan
                         </button>
                       )}
                     </td>
