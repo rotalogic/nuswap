@@ -102,6 +102,28 @@ button {
   white-space: nowrap;
 }
 
+/* Layar di atas smartphone: semua menu tampil pas tanpa geser kanan-kiri,
+   disusun dua baris (3 + 2). Di smartphone tab tetap satu baris bisa digeser. */
+@media (min-width: 641px) {
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    border-radius: 24px;
+    overflow-x: visible;
+  }
+
+  .tab {
+    grid-column: span 2;
+    font-size: 0.78rem;
+    padding: 10px 4px;
+  }
+
+  .tab:nth-child(4),
+  .tab:nth-child(5) {
+    grid-column: span 3;
+  }
+}
+
 .tab[aria-selected="true"] {
   background: #f2e7cf;
   color: #14532d;
