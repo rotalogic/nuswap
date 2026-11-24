@@ -295,7 +295,7 @@ export default function HomePage() {
             <section className="card main-key" aria-label="Kunci utama">
               <p className="label">
                 {keys.starter && keys.main.code === keys.starter.code
-                  ? "Kode starter dari pembuat aplikasi"
+                  ? "Mulailah dengan Bismillah"
                   : "Kode berikutnya dari antrean komunitas"}
               </p>
               <div className="key-code">{keys.main.code}</div>
