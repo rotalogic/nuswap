@@ -1,19 +1,44 @@
-/* Nuswap: identitas dari logo pemilik.
-   Seluruh latar hijau zamrud #14532D (pilihan pemilik, 25 Nov 2026),
-   permukaan kartu zamrud lebih terang, tombol hijau tua,
-   teks krem dan mint dari logo. */
+/* Nuswap — desain mode terang "paper" (FigCraft Website Method).
+   Disetujui Wildan 25 Nov 2026 dari versi perbandingan lokal.
+   Metode yang diterapkan:
+   1) Variables/tokens & modes: seluruh warna/spasi/radius/bayangan dari token
+      bernama di :root. Mode terang "paper" ini mengganti mode zamrud penuh
+      hanya dengan mengganti nilai token — komponennya sama persis.
+   2) Auto-layout: shell melebar mengikuti breakpoint (560 -> 768 -> 1120),
+      grid kartu 2 -> 3 -> 5 kolom, tab satu baris utuh di atas smartphone.
+   3) Komponen & variant: tombol primary/ghost/success/fail konsisten; kartu
+      kunci punya state hover & used; kartu kunci utama = variant "featured"
+      (satu-satunya permukaan gelap, tombol aksen emas).
+   4) Aksesibilitas: teks memakai token ink di atas permukaan terang
+      (kontras jauh di atas 4.5:1), fokus terlihat, target sentuh >= 44px. */
 :root {
-  --cream: #14532d;
-  --cream-deep: #0d3f22;
-  --paper: #1d6a38;
+  --bg: #f6f1e2;
+  --surface: #fffdf4;
+  --surface-2: #efe8d2;
+  --emerald: #14532d;
+  --emerald-strong: #0b3d24;
+  --emerald-mid: #2e7d4f;
+  --emerald-soft: #e2eedd;
   --mint: #a9df9e;
-  --green: #0b3d24;
-  --green-dark: #bfe3b8;
-  --ink: #f7f1de;
-  --ink-soft: #c9dec9;
-  --line: #2e7d4f;
-  --danger: #e88a76;
-  --radius: 18px;
+  --gold: #d4af37;
+  --gold-ink: #3d2e02;
+  --cream: #f7f1de;
+  --ink: #1c2b21;
+  --ink-soft: #4c5b4f;
+  --line: #ddd2b4;
+  --line-strong: #c9bb96;
+  --danger: #b3402a;
+  --danger-bg: #fbeae4;
+  --danger-line: #d89a86;
+  --danger-ink: #7c2d1c;
+  --ok-line: #9dbe94;
+  --ok-ink: #1e4630;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgba(28, 43, 33, 0.05), 0 6px 18px rgba(28, 43, 33, 0.05);
+  --shadow-md: 0 2px 4px rgba(28, 43, 33, 0.06), 0 14px 30px rgba(28, 43, 33, 0.1);
+  --font-code: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
 }
 
 * {
@@ -27,14 +52,14 @@ body {
 }
 
 body {
-  background: var(--cream);
+  background: var(--bg);
   color: var(--ink);
   font-family: "Nunito", "Segoe UI", ui-rounded, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 a {
-  color: var(--green-dark);
+  color: var(--emerald);
 }
 
 button {
@@ -43,7 +68,7 @@ button {
 }
 
 :focus-visible {
-  outline: 3px solid var(--mint);
+  outline: 3px solid var(--emerald-mid);
   outline-offset: 2px;
 }
 
@@ -53,14 +78,27 @@ button {
   padding: 0 16px 40px;
 }
 
-/* Pita teks berjalan di paling atas: emas + hijau tua seperti situs referensi. */
+@media (min-width: 768px) {
+  .shell {
+    max-width: 760px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    max-width: 1120px;
+    padding: 0 24px 56px;
+  }
+}
+
+/* Pita teks berjalan: tetap emas seperti referensi pemilik. */
 .marquee {
-  background: #d4af37;
+  background: var(--gold);
   color: #064e3b;
   border-radius: 14px;
   overflow: hidden;
   padding: 9px 0;
-  margin-bottom: 14px;
+  margin: 12px 0 14px;
 }
 
 .marquee-track {
@@ -90,30 +128,18 @@ button {
   }
 }
 
-/* Kartu bagikan kode cepat selalu di awal halaman, tepat di bawah header
-   (instruksi pemilik). Baris shalawat statis tepat di bawah formulirnya. */
-.share-quick {
-  margin: 14px 0;
-}
-
-.shalawat-line {
-  text-align: center;
-  font-weight: 800;
-  color: var(--ink);
-  margin: 2px 0 4px;
-}
-
+/* Frame header: satu-satunya pita zamrud lebar; logo krem terbaca jelas di
+   atas zamrud (kontras terukur 7.42:1). Desktop: logo kiri, tagline kanan. */
 .site-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 26px 16px 20px;
-  margin-top: 14px;
+  gap: 6px;
+  padding: 26px 20px 22px;
   text-align: center;
-  background: var(--cream-deep);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-strong) 100%);
+  border-radius: 24px;
+  box-shadow: var(--shadow-md);
 }
 
 .site-header img {
@@ -123,20 +149,57 @@ button {
 
 .tagline {
   margin: 4px 0 0;
-  font-weight: 700;
-  color: #f2e7cf;
+  font-weight: 800;
+  color: var(--cream);
   font-size: 0.98rem;
 }
 
+@media (min-width: 1024px) {
+  .site-header {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 22px 32px;
+    text-align: left;
+  }
+
+  .site-header img {
+    width: 230px;
+  }
+
+  .tagline {
+    font-size: 1.12rem;
+    border-left: 2px solid rgba(247, 241, 222, 0.35);
+    padding-left: 24px;
+    margin: 0;
+  }
+}
+
+/* Kartu bagikan kode cepat tetap di awal halaman (instruksi pemilik),
+   kini sebagai kartu terang dengan aksen zamrud. */
+.share-quick {
+  margin: 14px 0;
+  border-top: 4px solid var(--emerald);
+}
+
+.shalawat-line {
+  text-align: center;
+  font-weight: 800;
+  color: var(--emerald);
+  margin: 2px 0 4px;
+}
+
+/* Tab: segmented control terang; aktif = pil zamrud. Smartphone tetap
+   satu baris bisa digeser (pengecualian pemilik); di atasnya grid utuh. */
 .tabs {
   display: flex;
   gap: 6px;
   margin: 18px 0 20px;
-  background: var(--cream-deep);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 5px;
   overflow-x: auto;
+  box-shadow: var(--shadow-sm);
 }
 
 .tab {
@@ -152,60 +215,64 @@ button {
   white-space: nowrap;
 }
 
-/* Layar di atas smartphone: semua menu tampil pas tanpa geser kanan-kiri,
-   disusun dua baris (3 + 2). Di smartphone tab tetap satu baris bisa digeser. */
+.tab:hover {
+  color: var(--emerald);
+  background: var(--emerald-soft);
+}
+
 @media (min-width: 641px) {
   .tabs {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    border-radius: 24px;
+    grid-template-columns: repeat(5, 1fr);
+    border-radius: 999px;
     overflow-x: visible;
   }
 
   .tab {
-    grid-column: span 2;
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     padding: 10px 4px;
-  }
-
-  .tab:nth-child(4),
-  .tab:nth-child(5) {
-    grid-column: span 3;
   }
 }
 
 .tab[aria-selected="true"] {
-  background: #f2e7cf;
-  color: #14532d;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  background: var(--emerald);
+  color: var(--cream);
+  box-shadow: 0 1px 4px rgba(11, 61, 36, 0.4);
+}
+
+.tab[aria-selected="true"]:hover {
+  background: var(--emerald);
+  color: var(--cream);
 }
 
 .card {
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: 18px;
+  box-shadow: var(--shadow-sm);
 }
 
 .stats-row {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 14px;
 }
 
 .stat {
   flex: 1;
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  padding: 14px;
   text-align: center;
+  box-shadow: var(--shadow-sm);
 }
 
 .stat strong {
   display: block;
-  font-size: 1.45rem;
-  color: var(--ink);
+  font-size: 1.6rem;
+  color: var(--emerald);
   line-height: 1.1;
 }
 
@@ -219,12 +286,16 @@ button {
   display: block;
   width: 100%;
   text-align: left;
-  background: var(--cream-deep);
-  border: 1px solid var(--mint);
-  border-radius: var(--radius);
+  background: var(--emerald-soft);
+  border: 1px solid var(--ok-line);
+  border-radius: var(--radius-lg);
   padding: 12px 16px;
   margin-bottom: 14px;
   color: var(--ink);
+}
+
+.winner-strip:hover {
+  box-shadow: var(--shadow-sm);
 }
 
 .winner-strip small {
@@ -233,29 +304,38 @@ button {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   font-size: 0.7rem;
-  color: var(--mint);
+  color: var(--emerald-strong);
 }
 
 .winner-strip strong {
   font-size: 1.02rem;
 }
 
+/* Kartu kunci utama = variant "featured": permukaan zamrud, kode krem
+   monospace besar, tombol aksen emas dengan teks hijau tua. */
 .main-key {
   text-align: center;
+  background: linear-gradient(150deg, var(--emerald) 0%, var(--emerald-strong) 90%);
+  border: 0;
+  color: var(--cream);
+  box-shadow: var(--shadow-md);
+  padding: 24px 18px;
 }
 
 .main-key .label {
   font-weight: 800;
-  color: var(--ink-soft);
+  color: var(--mint);
   font-size: 0.85rem;
+  letter-spacing: 0.03em;
   margin: 0 0 6px;
 }
 
 .key-code {
-  font-size: clamp(1.5rem, 7vw, 2rem);
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  color: var(--ink);
+  font-family: var(--font-code);
+  font-size: clamp(1.5rem, 7vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--cream);
   margin: 4px 0 14px;
   word-break: break-all;
 }
@@ -274,20 +354,30 @@ button {
 }
 
 .btn-primary {
-  background: var(--green);
-  color: #f7f1de;
+  background: var(--emerald-strong);
+  color: var(--cream);
   width: 100%;
   font-size: 1.02rem;
 }
 
 .btn-primary:hover {
-  background: #14532d;
+  background: var(--emerald);
+}
+
+.main-key .btn-primary {
+  background: var(--gold);
+  color: #123b22;
+  max-width: 420px;
+}
+
+.main-key .btn-primary:hover {
+  background: #e3c565;
 }
 
 .btn-ghost {
   background: transparent;
-  border: 2px solid var(--mint);
-  color: var(--mint);
+  border: 2px solid var(--emerald);
+  color: var(--emerald);
 }
 
 .btn-small {
@@ -303,14 +393,23 @@ button {
 
 .report-row {
   margin-top: 16px;
-  border-top: 1px dashed var(--line);
+  border-top: 1px dashed var(--line-strong);
   padding-top: 14px;
+}
+
+.main-key .report-row {
+  border-top-color: rgba(247, 241, 222, 0.4);
 }
 
 .report-row p {
   margin: 0 0 10px;
   font-weight: 700;
   color: var(--ink-soft);
+}
+
+.main-key .report-row p {
+  color: var(--cream);
+  opacity: 0.85;
 }
 
 .report-actions {
@@ -323,14 +422,28 @@ button {
 }
 
 .btn-success {
-  background: var(--green);
-  color: #f7f1de;
+  background: var(--emerald);
+  color: var(--cream);
+}
+
+.btn-success:hover {
+  background: var(--emerald-strong);
+}
+
+.main-key .btn-success {
+  background: var(--cream);
+  color: var(--emerald-strong);
 }
 
 .btn-fail {
   background: transparent;
   border: 2px solid var(--danger);
-  color: #f0a293;
+  color: var(--danger);
+}
+
+.main-key .btn-fail {
+  border-color: #f0a293;
+  color: #f6c9bd;
 }
 
 .notice {
@@ -341,18 +454,20 @@ button {
 }
 
 .notice-ok {
-  background: var(--cream-deep);
-  border: 1px solid var(--mint);
+  background: var(--emerald-soft);
+  border: 1px solid var(--ok-line);
+  color: var(--ok-ink);
 }
 
 .notice-err {
-  background: #57261e;
-  border: 1px solid #8a4a3a;
-  color: #f3c1b4;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-line);
+  color: var(--danger-ink);
 }
 
 .section-title {
-  font-size: 1.15rem;
+  font-size: 1.22rem;
+  letter-spacing: -0.01em;
   margin: 26px 0 4px;
   color: var(--ink);
 }
@@ -367,9 +482,9 @@ button {
 .refresh-btn {
   flex: 0 0 auto;
   margin-bottom: 4px;
-  background: var(--green);
-  color: #f7f1de;
-  border: 0;
+  background: var(--surface);
+  color: var(--emerald);
+  border: 2px solid var(--emerald);
   border-radius: 999px;
   font-weight: 900;
   font-size: 0.88rem;
@@ -378,7 +493,7 @@ button {
 }
 
 .refresh-btn:hover {
-  background: #14532d;
+  background: var(--emerald-soft);
 }
 
 .refresh-btn:disabled {
@@ -391,8 +506,10 @@ button {
   color: var(--ink-soft);
   font-weight: 600;
   font-size: 0.92rem;
+  line-height: 1.55;
 }
 
+/* Grid kunci: auto-layout 2 kolom (ponsel) -> 3 (tablet) -> 5 (desktop). */
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -405,20 +522,51 @@ button {
   }
 }
 
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
 .key-card {
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.key-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--ok-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key-card {
+    transition: none;
+  }
+
+  .key-card:hover {
+    transform: none;
+  }
 }
 
 .key-card .num {
   align-self: flex-start;
-  background: var(--cream-deep);
-  color: var(--green-dark);
+  background: var(--emerald-soft);
+  color: var(--emerald-strong);
   font-weight: 900;
   font-size: 0.78rem;
   border-radius: 8px;
@@ -426,8 +574,10 @@ button {
 }
 
 .key-card .code {
-  font-weight: 900;
-  font-size: 1.02rem;
+  font-family: var(--font-code);
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--ink);
   word-break: break-all;
 }
 
@@ -439,18 +589,20 @@ button {
   font-weight: 700;
   font-size: 0.88rem;
   text-align: left;
-  min-height: 32px;
+  min-height: 36px;
 }
 
 .key-card .copy-link span {
-  color: #e3c565;
+  color: var(--emerald);
   font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .key-card .open-btn {
   margin-top: auto;
-  background: var(--green);
-  color: #f7f1de;
+  background: var(--emerald);
+  color: var(--cream);
   border: 0;
   border-radius: 12px;
   font-weight: 900;
@@ -458,8 +610,14 @@ button {
   padding: 10px;
 }
 
+.key-card .open-btn:hover {
+  background: var(--emerald-strong);
+}
+
 .key-card.used {
-  opacity: 0.62;
+  opacity: 0.6;
+  background: var(--surface-2);
+  box-shadow: none;
 }
 
 .key-card .used-tag {
@@ -473,23 +631,30 @@ button {
   display: block;
   font-weight: 800;
   margin-bottom: 8px;
+  color: var(--ink);
 }
 
 .field input,
 .field textarea {
   width: 100%;
-  border: 2px solid var(--line);
+  border: 2px solid var(--line-strong);
   border-radius: 12px;
   padding: 12px 14px;
   font: inherit;
-  background: var(--cream-deep);
+  background: #ffffff;
   color: var(--ink);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: #8a927f;
 }
 
 .field input:focus,
 .field textarea:focus {
-  border-color: var(--mint);
+  border-color: var(--emerald);
   outline: none;
+  box-shadow: 0 0 0 3px rgba(20, 83, 45, 0.18);
 }
 
 .steps {
@@ -503,7 +668,7 @@ button {
 }
 
 .steps strong {
-  color: var(--mint);
+  color: var(--emerald);
 }
 
 .plain-list {
@@ -522,19 +687,28 @@ button {
   gap: 8px;
 }
 
+@media (min-width: 1024px) {
+  .winner-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+}
+
 .winner-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   padding: 10px 14px;
+  box-shadow: var(--shadow-sm);
 }
 
 .winner-item .no {
-  background: var(--cream-deep);
-  color: var(--green-dark);
+  background: var(--emerald-soft);
+  color: var(--emerald-strong);
   font-weight: 900;
   border-radius: 8px;
   padding: 4px 9px;
@@ -558,8 +732,8 @@ button {
 }
 
 .indo-badge {
-  background: var(--mint);
-  color: #14532d;
+  background: var(--gold);
+  color: var(--gold-ink);
   font-size: 0.7rem;
   font-weight: 900;
   border-radius: 999px;
@@ -577,10 +751,11 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--paper);
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   padding: 10px 14px;
+  box-shadow: var(--shadow-sm);
 }
 
 .history-item .report-actions {
@@ -628,14 +803,14 @@ button {
 }
 
 .badge-ok {
-  background: var(--green);
-  color: #f7f1de;
+  background: var(--emerald);
+  color: var(--cream);
 }
 
 .badge-fail {
   background: transparent;
   border: 2px solid var(--danger);
-  color: #f0a293;
+  color: var(--danger);
 }
 
 .muted {
@@ -646,7 +821,7 @@ button {
 
 .site-footer {
   margin-top: 34px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-strong);
   padding-top: 16px;
   font-size: 0.85rem;
   color: var(--ink-soft);
