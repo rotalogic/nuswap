@@ -9,26 +9,24 @@ export async function GET(req: NextRequest) {
   const device = await findDevice(req);
   const deviceId = device?.id ?? 0;
 
-  const takeCount = await queryOne<{ n: number }>(
-    "SELECT COUNT(*)::int AS n FROM code_takes WHERE device_id = $1",
-    [deviceId]
+  // Keputusan pemilik (25 Nov 2026): kunci starter selalu menjadi kartu
+  // utama untuk SEMUA pengunjung, termasuk perangkat yang sudah pernah
+  // mengambil kunci. Untuk perangkat lama tombolnya tetap berfungsi
+  // (salin + buka Nusuk); pencatatan ganda dicegah endpoint take (409),
+  // yang diperlakukan klien sebagai "ok".
+  const starterRow = await queryOne<QueueRow>(
+    "SELECT id, code, use_count FROM invitation_codes WHERE is_starter = true AND status = 'active' AND deleted_at IS NULL",
+    []
   );
-  const isNewDevice = (takeCount?.n ?? 0) === 0;
-
   let starter = null;
   let main: ReturnType<typeof publicCode> | null = null;
-  if (isNewDevice) {
-    const row = await queryOne<QueueRow>(
-      "SELECT id, code, use_count FROM invitation_codes WHERE is_starter = true AND status = 'active' AND deleted_at IS NULL",
-      []
-    );
-    if (row) {
-      starter = publicCode(row);
-      main = { ...starter };
-    }
+  if (starterRow) {
+    starter = publicCode(starterRow);
+    main = { ...starter };
   }
 
-  // Diambil 11 baris: 1 untuk kartu utama (bila bukan starter) + 10 untuk grid.
+  // Diambil 11 baris untuk grid: 10 tampil, 1 cadangan untuk kartu utama
+  // bila starter sedang tidak aktif.
   const eligible = await query<QueueRow>(
     `${ELIGIBLE_CODES} ORDER BY ${QUEUE_KEY} LIMIT 11`,
     [deviceId]
